@@ -1,6 +1,7 @@
 import random
 import tkinter as tk
 from tkinter import ttk, messagebox
+import os
 
 
 class Grid:
@@ -24,7 +25,7 @@ class Grid:
 
     style = ttk.Style()
     self.theme = tk.StringVar(root, style.theme_use())
-    self.theme_select = ttk.Combobox(root, textvariable=self.theme, values=style.theme_names())
+    self.theme_select = ttk.Combobox(root, textvariable=self.theme, values=style.theme_names(), width=9)
     self.theme_select.bind('<<ComboboxSelected>>', lambda e: style.theme_use(self.theme.get()))
     self.theme_select.grid(column=0, columnspan=5, row=height, pady=10)
 
