@@ -1,4 +1,5 @@
 import random
+from time import sleep
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
@@ -56,6 +57,8 @@ class Cell:
   def __init__(self, root: ttk.Widget, grid, x, y):
     self._mine = False
     self.root = root
+    self.count = -1
+    self.done_ticking = False
     self.exploded = False
     self.covered = True
     self._flag = False
@@ -106,6 +109,7 @@ class Cell:
     self.button.pack(fill=tk.BOTH, expand=1)
 
     if not self._grid.initialized:
+      # Set where the mines are on the board
       neighbors = self.get_neighbors()
       neighbors.append(self)
       self._grid.initialize(neighbors)
@@ -137,13 +141,47 @@ class Cell:
     else:
       for cell in self.get_neighbors():
         cell.expose()
+    self.count = count
     self._grid.covered_cells.remove(self)
-    if len(self._grid.covered_cells) == 0:
-      if messagebox.askyesno('Winner!', 'You won! Want to play again?'):
-        self._grid.minesweeper.show_intro()
-      else:
-        self._grid.minesweeper.mainframe.quit()
+    # if len(self._grid.covered_cells) == 0:
+    #   if messagebox.askyesno('Winner!', 'You won! Want to play again?'):
+    #     self._grid.minesweeper.show_intro()
+    #   else:
+    #     self._grid.minesweeper.mainframe.quit()
 
+  def tick(self):
+    '''Called when the computer is trying to solve the board''' 
+    if self.covered or self.done_ticking:
+      return
+    if self.count == 0:
+      self.done_ticking = True
+      for cell in self.get_neighbors():
+        cell.tick()
+      return
+    flagged = 0
+    cells_unflagged = []
+    cells_to_tick = set()
+    for cell in self.get_neighbors():
+      if cell._flag:
+        flagged += 1
+      elif cell.covered:
+        cells_unflagged.append(cell)
+    if flagged == self.count:
+      cells_to_tick = set(cells_unflagged)
+      for cell in cells_unflagged:
+        cell.expose()
+        # Remove all sets that this cell was in
+        cells_to_tick = cells_to_tick.union(cell.get_neighbors())
+      self.done_ticking = True
+    elif self.count - flagged == len(cells_unflagged):
+      for cell in cells_unflagged:
+        cell.flag()
+        cells_to_tick = cells_to_tick.union(cell.get_neighbors())
+      self.done_ticking = True
+    elif self.count - flagged + 1 == len(cells_unflagged):
+      '''Make a set of which only one cell can be a mine'''
+    for cell in cells_to_tick:
+      cell.tick()
     
     
 
@@ -187,6 +225,9 @@ class MineSweeper:
     for child in mf.winfo_children():
       child.destroy()
     self.grid = Grid(mf, self.width.get(), self.height.get(), self.mines.get(), self)
+    cell = self.grid.get_cell(self.grid.width//2, self.grid.height//2)
+    cell.expose()
+    cell.tick()
 
 def main():
   root = tk.Tk()
